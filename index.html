@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Only our own files may load or run. blob: is for the user's image and the video file. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#4E7A58">
+<title>Bokeh Background Maker</title>
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <h1>Bokeh Background Maker</h1>
+
+  <label id="drop" for="file">Click or drop an image here<small>Your image never leaves your device.</small></label>
+  <input type="file" id="file" accept="image/*" hidden>
+
+  <div id="workspace" hidden>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-bg" aria-controls="panel-bg" aria-selected="true">Turn image into BG</button>
+    <button role="tab" id="tab-video" aria-controls="panel-video" aria-selected="false">Image to video</button>
+  </div>
+
+  <section id="panel-bg" role="tabpanel" aria-labelledby="tab-bg" class="card">
+    <div id="editor" hidden>
+      <canvas id="preview"></canvas>
+
+      <div class="row">
+        <label for="darken">Darken</label>
+        <input type="range" id="darken" min="0" max="100" value="55">
+        <output id="darkenOut"></output>%
+      </div>
+      <div class="row">
+        <label for="blur">Blur</label>
+        <input type="range" id="blur" min="0" max="100" value="33">
+        <output id="blurOut"></output>%
+      </div>
+
+      <button id="download" class="primary">Download PNG (full size)</button>
+      <p class="hint">Preview is scaled down for speed. The download uses the full image size.</p>
+    </div>
+  </section>
+
+  <section id="panel-video" role="tabpanel" aria-labelledby="tab-video" class="card" hidden>
+    <canvas id="videoPreview"></canvas>
+
+    <div class="row">
+      <label for="zoom">Slow zoom</label>
+      <input type="range" id="zoom" min="0" max="10" step="0.5" value="2">
+      <output id="zoomOut"></output>%
+    </div>
+
+    <button id="makeVideo" class="primary">Download MP4 (6 seconds)</button>
+    <p class="hint" id="videoInfo"></p>
+    <p class="hint" id="videoStatus" role="status"></p>
+  </section>
+  </div>
+</main>
+<script src="vendor/mp4-muxer.js"></script>
+<script src="tabs.js"></script>
+<script src="blur.js"></script>
+<script src="video.js"></script>
+<script src="pwa.js"></script>
+</body>
+</html>
