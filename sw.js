@@ -1,6 +1,6 @@
 // Bump VERSION on every deploy. A new name makes the browser fetch every file
 // again; without it the installed app keeps showing the old files.
-const VERSION = "v1";
+const VERSION = "v5";
 const CACHE = `bokeh-${VERSION}`;
 const FILES = [
   "./",
@@ -8,11 +8,22 @@ const FILES = [
   "style.css",
   "tabs.js",
   "blur.js",
+  "mp4.js",
   "video.js",
+  "modes.js",
+  "poster-draw.js",
+  "contrast.js",
+  "poster.js",
+  "poster-session.js",
   "pwa.js",
   "vendor/mp4-muxer.js",
-  "fonts/fredoka-600.woff2",
+  "vendor/fflate.js",
+  "fonts/fredoka.woff2",
   "fonts/nunito.woff2",
+  "fonts/noto-sans-jp.woff2",
+  "fonts/noto-sans-sc.woff2",
+  "assets/badges/appstore.svg",
+  "assets/badges/playstore.svg",
   "icons/icon.svg",
   "icons/icon-192.png",
   "icons/icon-512.png",

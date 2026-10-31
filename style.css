@@ -9,18 +9,33 @@
   --rule: #E6EDE3;
 }
 
+/* Both are variable fonts: one file covers every weight in the range. */
 @font-face {
   font-family: Fredoka;
-  font-weight: 600;
+  font-weight: 300 700;
   font-display: swap;
-  src: url("fonts/fredoka-600.woff2") format("woff2");
+  src: url("fonts/fredoka.woff2") format("woff2");
 }
-/* Nunito is a variable font: one file covers every weight. */
 @font-face {
   font-family: Nunito;
   font-weight: 200 1000;
   font-display: swap;
   src: url("fonts/nunito.woff2") format("woff2");
+}
+
+/* Japanese and Chinese, cut to the common character sets (JIS X 0208, GB2312) to stay ~2 MB each.
+   The browser only downloads them when a page first uses that language. */
+@font-face {
+  font-family: "Noto Sans JP";
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/noto-sans-jp.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Noto Sans SC";
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/noto-sans-sc.woff2") format("woff2");
 }
 
 [hidden] { display: none !important; }
@@ -38,12 +53,12 @@ h1 { font-family: Fredoka, system-ui, sans-serif; font-weight: 600; font-size: 1
 
 .card { background: #fff; border: 1px solid var(--rule); border-radius: 20px; padding: 20px; }
 
-#drop {
+.drop {
   display: block; padding: 40px 16px; margin-bottom: 16px; text-align: center; cursor: pointer;
   background: #fff; border: 2px dashed var(--sage); border-radius: 20px; color: var(--ink-2); font-weight: 700;
 }
-#drop small { display: block; margin-top: 6px; font-weight: 400; font-size: .875rem; }
-#drop:hover, #drop.over { border-color: var(--sage-deep); background: var(--sage-pale); color: var(--ink); }
+.drop small { display: block; margin-top: 6px; font-weight: 400; font-size: .875rem; }
+.drop:hover, .drop.over { border-color: var(--sage-deep); background: var(--sage-pale); color: var(--ink); }
 
 canvas { display: block; max-width: 100%; height: auto; margin: 16px auto; border-radius: 12px; background: var(--sheet); }
 
@@ -57,6 +72,198 @@ button.primary {
   font: 700 1rem Nunito, system-ui, sans-serif; cursor: pointer;
 }
 button.primary:hover { background: #3F6648; }
+button.secondary {
+  padding: 11px 18px; border: 1px solid var(--sage-deep); border-radius: 12px; background: #fff;
+  color: var(--sage-deep); font: 700 .9375rem Nunito, system-ui, sans-serif; cursor: pointer;
+}
+button.secondary:hover { background: var(--sage-pale); }
+button:disabled { opacity: .45; cursor: default; }
 :focus-visible { outline: 3px solid var(--sage-deep); outline-offset: 2px; }
 
 .hint { color: var(--ink-2); font-size: .875rem; }
+
+/* ---------- home ---------- */
+.top { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.top h1 { margin: 0; }
+.back {
+  padding: 8px 14px; border: 1px solid var(--rule); border-radius: 999px; background: #fff;
+  color: var(--sage-deep); font: 700 .9375rem Nunito, system-ui, sans-serif; cursor: pointer;
+}
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.mode {
+  display: flex; flex-direction: column; gap: 6px; padding: 24px 20px; text-align: left; cursor: pointer;
+  background: #fff; border: 1px solid var(--rule); border-radius: 20px; color: var(--ink-2);
+  font: 400 .9375rem Nunito, system-ui, sans-serif;
+}
+.mode strong { font: 600 1.25rem Fredoka, system-ui, sans-serif; color: var(--ink); }
+.mode:hover { border-color: var(--sage-deep); background: var(--sage-pale); }
+
+/* ---------- poster studio: an app-like screen that never scrolls as a whole ---------- */
+body:has(#mode-poster:not([hidden])) main {
+  max-width: none; height: 100dvh; box-sizing: border-box; padding: 12px 16px;
+  display: flex; flex-direction: column;
+}
+body:has(#mode-poster:not([hidden])) .top { margin-bottom: 12px; }
+#mode-poster:not([hidden]) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+#pDrop { flex: 1; margin: 0; display: flex; flex-direction: column; justify-content: center; }
+
+.studio {
+  flex: 1; min-height: 0; display: grid; gap: 12px 16px;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: "canvas side" "strip side";
+}
+
+/* The stage fits the free space both ways. cqw/cqh = 1% of this box's width/height. */
+.canvas-area { grid-area: canvas; min-height: 0; container-type: size; display: grid; place-items: center; border-radius: 16px; }
+.canvas-area.over { background: var(--sage-pale); }
+/* --ar (width / height) is set from JS, so the stage always has the poster's shape. */
+.stage {
+  position: relative; aspect-ratio: var(--ar, 9 / 16); width: min(100cqw, calc(100cqh * var(--ar, .5625)));
+  border-radius: 12px; box-shadow: 0 2px 12px rgb(53 55 61 / .12);
+}
+/* Round the canvas, not the stage: clipping the stage would cut off handles on the poster's edge. */
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; border-radius: 12px; }
+.guide { position: absolute; top: 0; bottom: 0; left: 50%; width: 0; border-left: 1px dashed #E0B54A; pointer-events: none; }
+
+/* touch-action: none stops the page from scrolling while a finger drags a box. */
+.box { position: absolute; touch-action: none; cursor: move; outline: 1px dashed rgb(53 55 61 / .35); }
+.box.picked { outline: 2px solid var(--sage-deep); }
+.box.overflow { outline: 2px dashed #C4604F; }
+/* Nothing selected: a clean preview, outlines only on hover. */
+.stage.clean .box:not(.overflow) { outline-color: transparent; }
+.stage.clean .box:hover { outline-color: rgb(53 55 61 / .35); }
+.handle {
+  position: absolute; box-sizing: border-box; width: 14px; height: 14px; margin: -7px; touch-action: none;
+  background: #fff; border: 2px solid var(--sage-deep); border-radius: 50%;
+}
+/* An invisible ring around each handle makes it easier to grab without drawing a bigger dot. */
+.handle::before { content: ""; position: absolute; inset: -7px; border-radius: 50%; }
+.box:not(.picked) .handle { display: none; }
+.handle.n, .handle.s { left: 50%; } .handle.e, .handle.w { top: 50%; }
+.handle.n, .handle.ne, .handle.nw { top: 0; } .handle.s, .handle.se, .handle.sw { top: 100%; }
+.handle.w, .handle.nw, .handle.sw { left: 0; } .handle.e, .handle.ne, .handle.se { left: 100%; }
+.handle.n, .handle.s { cursor: ns-resize; } .handle.e, .handle.w { cursor: ew-resize; }
+.handle.ne, .handle.sw { cursor: nesw-resize; } .handle.nw, .handle.se { cursor: nwse-resize; }
+/* Fingers need ~40 px to hit reliably; the ring grows, the dot stays small enough not to hide the text. */
+@media (pointer: coarse) { .handle { width: 12px; height: 12px; margin: -6px; } .handle::before { inset: -14px; } }
+
+/* ---------- slide strip ---------- */
+.strip { grid-area: strip; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.slides { display: flex; gap: 8px; overflow-x: auto; min-width: 0; padding: 2px; }
+.slide {
+  position: relative; flex: 0 0 auto; padding: 0; border: 2px solid transparent; border-radius: 10px;
+  background: none; cursor: pointer;
+}
+.slide[aria-pressed="true"] { border-color: var(--sage-deep); }
+.slide canvas { display: block; margin: 0; height: 88px; width: auto; border-radius: 8px; }
+.slide span {
+  position: absolute; top: 4px; left: 4px; min-width: 20px; padding: 0 5px; border-radius: 999px;
+  background: var(--ink); color: #fff; font: 700 .75rem/20px Nunito, system-ui, sans-serif;
+}
+.slide span.video { left: auto; right: 4px; background: var(--sage-deep); }
+.add-slide {
+  flex: 0 0 auto; display: grid; place-items: center; width: 52px; height: 88px; cursor: pointer;
+  border: 2px dashed var(--sage); border-radius: 10px; background: #fff; color: var(--sage-deep);
+  font: 600 1.5rem Fredoka, system-ui, sans-serif;
+}
+.add-slide:hover { border-color: var(--sage-deep); background: var(--sage-pale); }
+.slide-actions { display: flex; gap: 6px; flex: 0 0 auto; padding-left: 8px; margin-left: 4px; border-left: 1px solid var(--rule); }
+.slide-actions button {
+  min-width: 40px; height: 36px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 999px; background: #fff;
+  color: var(--ink-2); font: 700 .875rem Nunito, system-ui, sans-serif; cursor: pointer;
+}
+#slideDel { color: #C4604F; }
+
+/* ---------- sidebar ---------- */
+.sidebar {
+  grid-area: side; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+  background: #fff; border: 1px solid var(--rule); border-radius: 20px;
+}
+.side-tabs { display: flex; border-bottom: 1px solid var(--rule); flex: 0 0 auto; }
+.side-tabs button {
+  flex: 1; padding: 13px 4px 10px; border: 0; border-bottom: 3px solid transparent; background: none;
+  color: var(--ink-2); font: 700 .9375rem Nunito, system-ui, sans-serif; cursor: pointer;
+}
+.side-tabs button[aria-pressed="true"] { color: var(--sage-deep); border-bottom-color: var(--sage-deep); }
+.side-box { flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px; padding: 14px 18px 0; }
+.side-panel { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 16px 18px 18px; }
+.side-foot { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 18px 14px; border-top: 1px solid var(--rule); }
+.side-foot button { flex: 1 1 140px; }
+.side-foot .hint { flex-basis: 100%; margin: 0; }
+
+.sidebar h3 { margin: 0; font: 600 1rem Fredoka, system-ui, sans-serif; }
+.group { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.inline { display: flex; align-items: center; gap: 12px; }
+.inline select { flex: 1; }
+.sidebar .hint { margin: 0; }
+.sidebar .hint:empty { display: none; }
+.sidebar .row { margin: 0; gap: 10px; }
+.sidebar .row label { width: 76px; flex: 0 0 auto; }
+.sidebar .row select { flex: 1; min-width: 0; }
+.sidebar output { min-width: 3.5ch; }
+.sidebar select, .sidebar textarea, .sidebar input[type="text"] {
+  box-sizing: border-box; padding: 9px 11px; border: 1px solid #D5DED2; border-radius: 10px; background: #fff;
+  color: var(--ink); font: 400 .9375rem Nunito, system-ui, sans-serif;
+}
+.sidebar textarea { width: 100%; resize: vertical; min-height: 92px; }
+.check { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.check input { width: 18px; height: 18px; margin: 0; accent-color: var(--sage-deep); }
+.link { padding: 0; border: 0; background: none; color: #C4604F; font: 700 .875rem Nunito, system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+
+.seg { display: flex; gap: 6px; }
+.seg button, .toggle {
+  flex: 1; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 999px; background: #fff;
+  color: var(--ink-2); font: 700 .9375rem Nunito, system-ui, sans-serif; cursor: pointer;
+}
+.toggle { flex: 0 0 42px; padding: 8px 0; }
+.seg button[aria-pressed="true"], .toggle[aria-pressed="true"] { background: var(--sage-deep); border-color: var(--sage-deep); color: #fff; }
+.seg.wrap { flex-wrap: wrap; }
+.seg.wrap button { flex: 0 0 auto; padding: 6px 14px; }
+
+.color { display: grid; grid-template-columns: 1fr 44px; gap: 8px; align-items: center; }
+.color .label { grid-column: 1 / -1; font-weight: 700; }
+.swatches { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.swatch { width: 24px; height: 24px; padding: 0; border: 1px solid rgb(53 55 61 / .2); border-radius: 50%; cursor: pointer; }
+/* Checkerboard = "no color". */
+.swatch.none { background-image: conic-gradient(#ccc 25%, #fff 0 50%, #ccc 0 75%, #fff 0) !important; background-size: 10px 10px !important; }
+.color input[type="color"] { grid-row: 3; grid-column: 2; width: 44px; height: 38px; padding: 3px; border: 1px solid #D5DED2; border-radius: 10px; background: #fff; }
+.color input[type="text"] { grid-row: 3; grid-column: 1; min-width: 0; }
+.color input.bad { border-color: #C4604F; }
+
+.contrast { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.contrast:empty { display: none; }
+.chip { padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: .8125rem; }
+/* Coral only for "something is wrong" (Stubby spec §3). */
+.chip.good { background: var(--sage-pale); color: #2F5A3A; }
+.chip.ok { background: #F6EBC9; color: #6B5212; }
+.chip.low { background: #F8E6E1; color: #A3402F; }
+
+/* ---------- phone and tablet portrait: preview on top, settings in the lower part ---------- */
+@media (max-width: 860px) {
+  body:has(#mode-poster:not([hidden])) main { padding: 8px 10px; }
+  body:has(#mode-poster:not([hidden])) .top { margin-bottom: 8px; }
+  body:has(#mode-poster:not([hidden])) h1 { font-size: 1.125rem; }
+  .back { padding: 6px 12px; font-size: .875rem; }
+  .studio {
+    gap: 8px; grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto minmax(0, 42dvh);
+    grid-template-areas: "canvas" "strip" "side";
+  }
+  .slide canvas { height: 60px; }
+  .slide span { top: 2px; left: 2px; min-width: 14px; padding: 0 4px; font-size: .625rem; line-height: 14px; }
+  .slide span.video { right: 2px; }
+  .add-slide { width: 40px; height: 60px; }
+  /* Small screens: the whole settings area scrolls as one, tabs stay on top and export buttons at the bottom. */
+  .sidebar { overflow-y: auto; }
+  .side-tabs { position: sticky; top: 0; z-index: 1; background: #fff; }
+  .side-panel { flex: none; overflow: visible; }
+  .side-foot { position: sticky; bottom: 0; margin-top: auto; background: #fff; }
+  .slide-actions button { min-width: 36px; height: 32px; padding: 0 10px; }
+  .side-tabs button { padding: 11px 2px 8px; font-size: .875rem; }
+  .side-box { padding: 10px 14px 0; }
+  .side-panel { padding: 12px 14px 14px; gap: 12px; }
+  .side-foot { padding: 10px 14px; }
+  .side-foot button { flex-basis: 120px; padding: 10px 8px; font-size: .875rem; }
+}

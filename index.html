@@ -6,7 +6,7 @@
 <!-- Only our own files may load or run. blob: is for the user's image and the video file. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="theme-color" content="#4E7A58">
-<title>Bokeh Background Maker</title>
+<title>Stubby Studio</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -14,9 +14,28 @@
 </head>
 <body>
 <main>
-  <h1>Bokeh Background Maker</h1>
+  <div class="top">
+    <button id="home" class="back" hidden>← All tools</button>
+    <h1>Stubby Studio</h1>
+  </div>
 
-  <label id="drop" for="file">Click or drop an image here<small>Your image never leaves your device.</small></label>
+  <section id="mode-home" class="modes" aria-label="Pick a tool">
+    <button class="mode" data-mode="poster">
+      <strong>Poster Studio</strong>
+      <span>Header, footer and store badges on your screenshots. Export PNG.</span>
+    </button>
+    <button class="mode" data-mode="tools" data-tab="tab-bg">
+      <strong>Bokeh background</strong>
+      <span>Blur and darken an image into a background.</span>
+    </button>
+    <button class="mode" data-mode="tools" data-tab="tab-video">
+      <strong>Image to video</strong>
+      <span>A 6-second MP4 from one image.</span>
+    </button>
+  </section>
+
+  <section id="mode-tools" hidden>
+  <label id="drop" class="drop" for="file">Click or drop an image here<small>Your image never leaves your device.</small></label>
   <input type="file" id="file" accept="image/*" hidden>
 
   <div id="workspace" hidden>
@@ -59,11 +78,172 @@
     <p class="hint" id="videoStatus" role="status"></p>
   </section>
   </div>
+  </section>
+
+  <section id="mode-poster" hidden>
+    <label id="pDrop" class="drop" for="pFile">Click or drop screenshots here. Each one becomes a slide.<small>Your images never leave your device.</small></label>
+    <input type="file" id="pFile" accept="image/*" multiple hidden>
+
+    <div id="pEditor" class="studio" hidden>
+      <div class="canvas-area" id="canvasArea">
+        <div id="stage" class="stage">
+          <canvas id="pCanvas"></canvas>
+          <div id="guide" class="guide" hidden></div>
+          <div class="box" data-box="header" aria-label="Header box"></div>
+          <div class="box" data-box="footer" aria-label="Footer box"></div>
+        </div>
+      </div>
+
+      <div class="strip">
+        <div id="slides" class="slides" aria-label="Slides"></div>
+        <label class="add-slide" for="pFile" title="Add slides" aria-label="Add slides">+</label>
+        <div class="slide-actions">
+          <button id="slidePrev" title="Move slide left" aria-label="Move slide left">←</button>
+          <button id="slideNext" title="Move slide right" aria-label="Move slide right">→</button>
+          <button id="slideDel" title="Delete slide">Delete</button>
+        </div>
+      </div>
+
+      <aside class="sidebar" aria-label="Settings">
+        <nav class="side-tabs">
+          <button data-side="text" aria-pressed="true">Text</button>
+          <button data-side="style" aria-pressed="false">Style</button>
+          <button data-side="bg" aria-pressed="false">Background</button>
+          <button data-side="export" aria-pressed="false">Export</button>
+        </nav>
+
+        <!-- Shared by the Text and Style tabs: which box you edit, and how readable it is. -->
+        <div class="side-box" id="sideBox">
+          <div class="seg" role="group" aria-label="Which box">
+            <button data-pick="header" aria-pressed="true">Header</button>
+            <button data-pick="footer" aria-pressed="false">Footer</button>
+          </div>
+          <p id="contrast" class="contrast" aria-label="Text contrast"></p>
+        </div>
+
+        <div class="side-panel" data-panel="text">
+          <label class="check"><input type="checkbox" id="boxShow"> Show this box</label>
+          <textarea id="boxText" rows="4" aria-label="Box text"></textarea>
+          <div class="group">
+            <h3>Language</h3>
+            <div id="langTabs" class="seg wrap" role="group" aria-label="Language shown"></div>
+            <div class="inline">
+              <select id="langAdd" aria-label="Add another language"></select>
+              <button id="langRemove" class="link" hidden>Remove this language</button>
+            </div>
+            <p class="hint" id="langStatus" role="status"></p>
+          </div>
+        </div>
+
+        <div class="side-panel" data-panel="style" hidden>
+          <div class="row">
+            <label for="boxFont">Font</label>
+            <select id="boxFont">
+              <option>Fredoka</option>
+              <option>Nunito</option>
+            </select>
+            <button id="boxBold" class="toggle" aria-pressed="false" aria-label="Bold"><b>B</b></button>
+          </div>
+          <div class="row">
+            <label for="boxWeight">Weight</label>
+            <input type="range" id="boxWeight" step="10">
+            <output id="boxWeightOut"></output>
+          </div>
+          <div class="row">
+            <label for="boxSize">Text size</label>
+            <input type="range" id="boxSize" min="1" max="20" step="0.1">
+            <output id="boxSizeOut"></output>px
+          </div>
+          <div class="seg" role="group" aria-label="Align">
+            <button data-align="left" aria-pressed="false">Left</button>
+            <button data-align="center" aria-pressed="true">Center</button>
+            <button data-align="right" aria-pressed="false">Right</button>
+          </div>
+          <div class="color" data-color="text" data-label="Text color"></div>
+          <div class="color" data-color="fill" data-label="Box color" data-none></div>
+          <div class="group">
+            <h3>Store badges</h3>
+            <label class="check"><input type="checkbox" id="boxAppstore"> App Store</label>
+            <label class="check"><input type="checkbox" id="boxPlaystore"> Google Play</label>
+            <div class="row">
+              <label for="boxBadgeGap">Space</label>
+              <input type="range" id="boxBadgeGap" min="0" max="8" step="0.1">
+              <output id="boxBadgeGapOut"></output>px
+            </div>
+          </div>
+          <button id="applyAll" class="secondary">Apply this box to all slides</button>
+        </div>
+
+        <div class="side-panel" data-panel="bg" hidden>
+          <select id="bgType" aria-label="Background type">
+            <option value="paw">Paw pattern</option>
+            <option value="dots">Dots</option>
+            <option value="stripes">Stripes</option>
+            <option value="plain">Plain color</option>
+          </select>
+          <p class="hint">Shows only through transparent parts of your image.</p>
+          <div class="color" data-color="bg" data-label="Background"></div>
+          <div id="patternControls" class="group">
+            <div class="color" data-color="pattern" data-label="Pattern color"></div>
+            <div class="row">
+              <label for="patStrength">Strength</label>
+              <input type="range" id="patStrength" min="0" max="40" step="0.5">
+              <output id="patStrengthOut"></output>%
+            </div>
+            <div class="row">
+              <label for="patSize">Size</label>
+              <input type="range" id="patSize" min="5" max="60">
+              <output id="patSizeOut"></output>%
+            </div>
+          </div>
+        </div>
+
+        <div class="side-panel" data-panel="export" hidden>
+          <h3>Size</h3>
+          <select id="pRatio" aria-label="Aspect ratio"></select>
+          <label class="check"><input type="checkbox" id="pExact"> Exact preset size (scales the image)</label>
+          <p class="hint" id="pAuto"></p>
+          <p class="hint" id="pInfo"></p>
+          <div class="group">
+            <h3>This slide as video</h3>
+            <label class="check"><input type="checkbox" id="vidOn"> Export this slide as MP4</label>
+            <div id="vidControls" class="stack">
+              <div class="row">
+                <label for="vidSecs">Length</label>
+                <input type="range" id="vidSecs" min="1" max="15" step="0.5">
+                <output id="vidSecsOut"></output>s
+              </div>
+              <div class="row">
+                <label for="vidZoom">Slow zoom</label>
+                <input type="range" id="vidZoom" min="0" max="10" step="0.5">
+                <output id="vidZoomOut"></output>%
+              </div>
+              <p class="hint">Up to 1080 × 1920, 30 fps, no sound. In the ZIP this slide comes as MP4 instead of PNG.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-foot">
+          <button id="pZip" class="primary"></button>
+          <button id="pDownload" class="secondary"></button>
+          <p class="hint" id="pCount"></p>
+          <p class="hint" id="pStatus" role="status"></p>
+        </div>
+      </aside>
+    </div>
+  </section>
 </main>
 <script src="vendor/mp4-muxer.js"></script>
+<script src="vendor/fflate.js"></script>
 <script src="tabs.js"></script>
 <script src="blur.js"></script>
+<script src="mp4.js"></script>
 <script src="video.js"></script>
+<script src="modes.js"></script>
+<script src="poster-draw.js"></script>
+<script src="contrast.js"></script>
+<script src="poster.js"></script>
+<script src="poster-session.js"></script>
 <script src="pwa.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 {
-  "name": "Bokeh Background Maker",
-  "short_name": "Bokeh Maker",
-  "description": "Turn a photo into a blurred, darkened background, or into a 6 second MP4. Runs fully in your browser.",
+  "name": "Stubby Studio",
+  "short_name": "Stubby Studio",
+  "description": "Marketing posters and carousels for Stubby, bokeh backgrounds and image-to-video. Runs fully in your browser.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
