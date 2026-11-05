@@ -1,6 +1,6 @@
 // Bump VERSION on every deploy. A new name makes the browser fetch every file
 // again; without it the installed app keeps showing the old files.
-const VERSION = "v5";
+const VERSION = "v8";
 const CACHE = `bokeh-${VERSION}`;
 const FILES = [
   "./",

@@ -82,7 +82,7 @@ $("applyAll").addEventListener("click", () => {
   syncPanel();
   renderPoster();
   $("applyAll").textContent = "Applied ✓";
-  setTimeout(() => { $("applyAll").textContent = "Apply this box to all slides"; }, 1500);
+  setTimeout(() => { $("applyAll").textContent = "Apply this item to all slides"; }, 1500);
 });
 
 $("pFile").addEventListener("change", (e) => { addImages(e.target.files); e.target.value = ""; });
@@ -198,6 +198,7 @@ function syncSession() {
   for (const [code, name] of Object.entries(LANGS)) if (!poster.langs.includes(code)) add.add(new Option(name, code));
   add.hidden = add.options.length === 1;
   $("langRemove").hidden = poster.lang === "en";
+  $("langRemove").textContent = `Remove ${LANGS[poster.lang]}`;
 
   const first = poster.slides[0];
   const match = first && matchPreset(first.img.naturalWidth, first.img.naturalHeight);

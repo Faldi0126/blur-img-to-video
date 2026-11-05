@@ -110,8 +110,8 @@ body:has(#mode-poster:not([hidden])) .top { margin-bottom: 12px; }
 .studio {
   flex: 1; min-height: 0; display: grid; gap: 12px 16px;
   grid-template-columns: minmax(0, 1fr) 380px;
-  grid-template-rows: minmax(0, 1fr) auto;
-  grid-template-areas: "canvas side" "strip side";
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas: "lang side" "canvas side" "strip side";
 }
 
 /* The stage fits the free space both ways. cqw/cqh = 1% of this box's width/height. */
@@ -147,6 +147,9 @@ body:has(#mode-poster:not([hidden])) .top { margin-bottom: 12px; }
 .handle.ne, .handle.sw { cursor: nesw-resize; } .handle.nw, .handle.se { cursor: nwse-resize; }
 /* Fingers need ~40 px to hit reliably; the ring grows, the dot stays small enough not to hide the text. */
 @media (pointer: coarse) { .handle { width: 12px; height: 12px; margin: -6px; } .handle::before { inset: -14px; } }
+/* Filled, so they read as different things from the resize handles: green aims the tail, amber moves its start. */
+.tail-dot { background: var(--sage-deep); border-color: #fff; cursor: grab; }
+.root-dot { background: #E0B54A; }
 
 /* ---------- slide strip ---------- */
 .strip { grid-area: strip; display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -186,7 +189,6 @@ body:has(#mode-poster:not([hidden])) .top { margin-bottom: 12px; }
   color: var(--ink-2); font: 700 .9375rem Nunito, system-ui, sans-serif; cursor: pointer;
 }
 .side-tabs button[aria-pressed="true"] { color: var(--sage-deep); border-bottom-color: var(--sage-deep); }
-.side-box { flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px; padding: 14px 18px 0; }
 .side-panel { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 16px 18px 18px; }
 .side-foot { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 18px 14px; border-top: 1px solid var(--rule); }
 .side-foot button { flex: 1 1 140px; }
@@ -200,7 +202,7 @@ body:has(#mode-poster:not([hidden])) .top { margin-bottom: 12px; }
 .sidebar .hint { margin: 0; }
 .sidebar .hint:empty { display: none; }
 .sidebar .row { margin: 0; gap: 10px; }
-.sidebar .row label { width: 76px; flex: 0 0 auto; }
+.sidebar .row label { width: 92px; flex: 0 0 auto; }
 .sidebar .row select { flex: 1; min-width: 0; }
 .sidebar output { min-width: 3.5ch; }
 .sidebar select, .sidebar textarea, .sidebar input[type="text"] {
@@ -218,27 +220,56 @@ body:has(#mode-poster:not([hidden])) .top { margin-bottom: 12px; }
   color: var(--ink-2); font: 700 .9375rem Nunito, system-ui, sans-serif; cursor: pointer;
 }
 .toggle { flex: 0 0 42px; padding: 8px 0; }
+.toggle.wide { flex: 0 0 auto; padding: 8px 14px; }
 .seg button[aria-pressed="true"], .toggle[aria-pressed="true"] { background: var(--sage-deep); border-color: var(--sage-deep); color: #fff; }
 .seg.wrap { flex-wrap: wrap; }
 .seg.wrap button { flex: 0 0 auto; padding: 6px 14px; }
 
-.color { display: grid; grid-template-columns: 1fr 44px; gap: 8px; align-items: center; }
-.color .label { grid-column: 1 / -1; font-weight: 700; }
-.swatches { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
-.swatch { width: 24px; height: 24px; padding: 0; border: 1px solid rgb(53 55 61 / .2); border-radius: 50%; cursor: pointer; }
+.color { display: grid; grid-template-columns: 92px minmax(0, 1fr) 44px; gap: 8px 10px; align-items: center; }
+.color .label { grid-area: 1 / 1; font-weight: 700; }
+.color input[type="text"] { grid-area: 1 / 2; min-width: 0; }
+.color input[type="color"] { grid-area: 1 / 3; width: 44px; height: 38px; padding: 3px; border: 1px solid #D5DED2; border-radius: 10px; background: #fff; }
+.swatches { grid-area: 2 / 1 / 3 / -1; display: flex; flex-wrap: wrap; gap: 5px; }
+.swatch { width: 22px; height: 22px; padding: 0; border: 1px solid rgb(53 55 61 / .2); border-radius: 50%; cursor: pointer; }
 /* Checkerboard = "no color". */
 .swatch.none { background-image: conic-gradient(#ccc 25%, #fff 0 50%, #ccc 0 75%, #fff 0) !important; background-size: 10px 10px !important; }
-.color input[type="color"] { grid-row: 3; grid-column: 2; width: 44px; height: 38px; padding: 3px; border: 1px solid #D5DED2; border-radius: 10px; background: #fff; }
-.color input[type="text"] { grid-row: 3; grid-column: 1; min-width: 0; }
 .color input.bad { border-color: #C4604F; }
 
-.contrast { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
-.contrast:empty { display: none; }
 .chip { padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: .8125rem; }
 /* Coral only for "something is wrong" (Stubby spec §3). */
 .chip.good { background: var(--sage-pale); color: #2F5A3A; }
 .chip.ok { background: #F6EBC9; color: #6B5212; }
 .chip.low { background: #F8E6E1; color: #A3402F; }
+.chip.off { background: var(--rule); color: var(--ink-2); }
+
+/* ---------- language bar, above the poster ---------- */
+.langbar { grid-area: lang; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 10px; min-width: 0; }
+.langbar .seg { flex: 0 1 auto; }
+.langbar .seg.wrap button { padding: 5px 13px; font-size: .875rem; }
+.langbar select {
+  padding: 5px 12px; border: 1px dashed var(--sage); border-radius: 999px; background: #fff;
+  color: var(--sage-deep); font: 700 .875rem Nunito, system-ui, sans-serif; cursor: pointer;
+}
+.langbar .hint { margin: 0; }
+.langbar .hint:empty { display: none; }
+
+/* ---------- items: the rows stay in view, only the settings under them scroll ---------- */
+.side-panel[data-panel="items"] { gap: 0; padding: 0; overflow: hidden; }
+.items { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; padding: 12px; border-bottom: 1px solid var(--rule); }
+.item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 8px 12px;
+  border: 1px solid var(--rule); border-radius: 12px; background: #fff; text-align: left; cursor: pointer;
+  color: var(--ink); font: 600 1rem Fredoka, system-ui, sans-serif;
+}
+.item[aria-pressed="true"] { background: var(--sage-pale); border-color: var(--sage-deep); }
+.item-meta { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; font-family: Nunito, system-ui, sans-serif; }
+.item-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 14px 12px 16px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field-head { display: flex; align-items: center; justify-content: space-between; }
+.field-head label { font-weight: 700; }
+.tools { display: flex; gap: 6px; }
+.tools .toggle { flex: 0 0 38px; padding: 5px 0; }
+.side-panel > .group:first-child { padding-top: 0; border-top: 0; }
 
 /* ---------- phone and tablet portrait: preview on top, settings in the lower part ---------- */
 @media (max-width: 860px) {
@@ -248,8 +279,8 @@ body:has(#mode-poster:not([hidden])) .top { margin-bottom: 12px; }
   .back { padding: 6px 12px; font-size: .875rem; }
   .studio {
     gap: 8px; grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto minmax(0, 42dvh);
-    grid-template-areas: "canvas" "strip" "side";
+    grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 42dvh);
+    grid-template-areas: "lang" "canvas" "strip" "side";
   }
   .slide canvas { height: 60px; }
   .slide span { top: 2px; left: 2px; min-width: 14px; padding: 0 4px; font-size: .625rem; line-height: 14px; }
@@ -258,11 +289,16 @@ body:has(#mode-poster:not([hidden])) .top { margin-bottom: 12px; }
   /* Small screens: the whole settings area scrolls as one, tabs stay on top and export buttons at the bottom. */
   .sidebar { overflow-y: auto; }
   .side-tabs { position: sticky; top: 0; z-index: 1; background: #fff; }
-  .side-panel { flex: none; overflow: visible; }
+  .side-panel, .side-panel[data-panel="items"] { flex: none; overflow: visible; }
+  .item-body { flex: none; overflow: visible; padding: 12px 10px 14px; }
+  /* Side by side: three rows would eat most of the small sheet. */
+  .items { flex-direction: row; gap: 6px; padding: 8px 10px; }
+  .item { flex: 1 1 0; min-width: 0; flex-direction: column; align-items: flex-start; gap: 4px; padding: 6px 8px; font-size: .875rem; }
+  .item-meta { justify-content: flex-start; }
+  .item .chip { padding: 2px 8px; border-radius: 10px; font-size: .75rem; line-height: 1.25; }
   .side-foot { position: sticky; bottom: 0; margin-top: auto; background: #fff; }
   .slide-actions button { min-width: 36px; height: 32px; padding: 0 10px; }
   .side-tabs button { padding: 11px 2px 8px; font-size: .875rem; }
-  .side-box { padding: 10px 14px 0; }
   .side-panel { padding: 12px 14px 14px; gap: 12px; }
   .side-foot { padding: 10px 14px; }
   .side-foot button { flex-basis: 120px; padding: 10px 8px; font-size: .875rem; }

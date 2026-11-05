@@ -41,15 +41,26 @@ const poster = {
     header: {
       show: true, x: 0.06, y: 0.04, w: 0.88, h: 0.16,
       text: { en: "Plan your day\nwith Stubby" }, font: "Fredoka", weight: 600, size: 0.075,
-      align: "center", color: "#35373D", fill: "rgba(0, 0, 0, 0)",
+      align: "center", color: "#35373D", fill: "rgba(0, 0, 0, 0)", backdrop: "none",
       appstore: false, playstore: false, badgeGap: 0.016,
     },
     footer: {
       show: true, x: 0.06, y: 0.8, w: 0.88, h: 0.16,
       text: { en: "Get Stubby on the App Store and Google Play" }, font: "Nunito", weight: 800, size: 0.04,
-      align: "center", color: "#35373D", fill: "rgba(0, 0, 0, 0)",
+      align: "center", color: "#35373D", fill: "rgba(0, 0, 0, 0)", backdrop: "none",
       // badgeGap: space between the two badges, as a share of poster width.
       appstore: true, playstore: true, badgeGap: 0.016,
+    },
+    // Drawn on the image, under header and footer. size is the biggest the text may
+    // get; it shrinks to fit. tx/ty: the tail's tip, root: where it leaves the body (see
+    // drawBubble). line/lineW: outline color and width.
+    // The badge fields only give the shared Style controls a value; a bubble never shows badges.
+    bubble: {
+      // Tip just off the lower-left side: the short tail of the app's bubble.
+      show: true, x: 0.44, y: 0.3, w: 0.48, h: 0.1, tx: 0.395, ty: 0.385, root: null,
+      shape: "stubby", text: { en: "Let's plan **today** together!" }, font: "Nunito", weight: 400, size: 0.045,
+      align: "center", color: "#35373D", fill: "#FFFFFF", line: "#35373D", lineW: 0,
+      appstore: false, playstore: false, badgeGap: 0.016,
     },
   },
 };
@@ -111,6 +122,9 @@ const stage = $("stage");
 const pCanvas = $("pCanvas");
 const plainCanvas = document.createElement("canvas"); // the preview without text, for contrast
 const boxEls = Object.fromEntries([...stage.querySelectorAll(".box")].map((el) => [el.dataset.box, el]));
+const tailDot = $("tailDot");
+const rootDot = $("rootDot");
+let lastRects = {}; // the newest draw's results: the root dot sits where the bubble says
 let frameQueued = false;
 
 function renderPoster() {
@@ -126,6 +140,7 @@ function renderPoster() {
     stage.style.setProperty("--ar", w / h);
     draw(pCanvas, pw, ph, s, poster.lang);
     const rects = draw(plainCanvas, pw, ph, s, poster.lang, false);
+    lastRects = rects;
     showContrast(rects);
     placeBoxes();
     showInfo(w, h, crop);
@@ -144,25 +159,33 @@ function showInfo(w, h, crop) {
   $("pInfo").textContent = info;
   $("boxSizeOut").textContent = Math.round(pickedBox().size * w);
   $("boxBadgeGapOut").textContent = Math.round(pickedBox().badgeGap * w);
+  $("bubLineOut").textContent = Math.round(boxesNow().bubble.lineW * w);
+}
+
+// Each item's row shows how readable its text is, so the answer sits next to the thing you edit.
+const metaEls = Object.fromEntries([...document.querySelectorAll("[data-meta]")].map((el) => [el.dataset.meta, el]));
+
+function chip(meta, cls, words) {
+  const el = document.createElement("span");
+  el.className = `chip ${cls}`;
+  el.textContent = words;
+  meta.append(el);
 }
 
 function showContrast(rects) {
-  const out = $("contrast");
-  out.replaceChildren();
-  const chip = (cls, words) => {
-    const el = document.createElement("span");
-    el.className = `chip ${cls}`;
-    el.textContent = words;
-    out.append(el);
-  };
-  for (const [name, r] of Object.entries(rects)) {
-    const label = name === "header" ? "Header" : "Footer";
+  for (const [name, meta] of Object.entries(metaEls)) {
+    meta.replaceChildren();
+    const r = rects[name];
+    if (!r) {
+      chip(meta, "off", "Hidden");
+      continue;
+    }
     boxEls[name].classList.toggle("overflow", r.overflow);
-    if (r.overflow) chip("low", `${label} doesn't fit its box`);
+    if (r.overflow) chip(meta, "low", "Doesn't fit");
     const ratio = r.text && measureContrast(plainCanvas, r.text, rgbaOf(boxesNow()[name].color));
     if (ratio == null) continue;
     const [cls, word] = ratio >= 4.5 ? ["good", "Good"] : ratio >= 3 ? ["ok", "Big text only"] : ["low", "Low"];
-    chip(cls, `${label} ${ratio.toFixed(1)}:1 · ${word}`);
+    chip(meta, cls, `${ratio.toFixed(1)}:1 ${word}`);
   }
 }
 
@@ -176,12 +199,22 @@ function placeBoxes() {
     el.style.height = `${b.h * 100}%`;
     el.classList.toggle("picked", selectionShown && name === picked);
   }
+  const bub = boxesNow().bubble;
+  const dotsOn = selectionShown && picked === "bubble" && bub.show;
+  tailDot.hidden = rootDot.hidden = !dotsOn;
+  tailDot.style.left = `${bub.tx * 100}%`;
+  tailDot.style.top = `${bub.ty * 100}%`;
+  const root = lastRects.bubble && lastRects.bubble.root;
+  if (root) {
+    rootDot.style.left = `${root[0] * 100}%`;
+    rootDot.style.top = `${root[1] * 100}%`;
+  }
   stage.classList.toggle("clean", !selectionShown);
 }
 
 // Clicking anywhere except a box or the settings hides the selection.
 document.addEventListener("pointerdown", (e) => {
-  if (!selectionShown || e.target.closest(".box, .sidebar")) return;
+  if (!selectionShown || e.target.closest(".box, .tail-dot, .sidebar")) return;
   selectionShown = false;
   placeBoxes();
 });
@@ -201,10 +234,10 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 let drag = null;
 
 stage.addEventListener("pointerdown", (e) => {
-  const el = e.target.closest(".box");
+  const el = e.target.closest(".box, .tail-dot");
   if (!el) return;
   pickBox(el.dataset.box);
-  if (sideTab === "bg" || sideTab === "export") showSide("text");
+  if (sideTab !== "items") showSide("items");
   const b = pickedBox();
   // Work from where the box was at grab time plus how far the pointer moved,
   // so the box never jumps to the pointer.
@@ -221,7 +254,16 @@ stage.addEventListener("pointermove", (e) => {
   const dy = (e.clientY - drag.y0) / rect.height;
   let snapped = false;
 
-  if (dir === "move") {
+  if (dir === "tail") {
+    b.tx = clamp(s.tx + dx, 0, 1);
+    b.ty = clamp(s.ty + dy, 0, 1);
+  } else if (dir === "root") {
+    // The dot follows the pointer's direction from the bubble's center, so it slides along the edge.
+    // Pixels, not fractions: the poster is not square, and fractions would skew the angle.
+    const px = e.clientX - rect.left - (b.x + b.w / 2) * rect.width;
+    const py = e.clientY - rect.top - (b.y + b.h / 2) * rect.height;
+    b.root = Math.atan2(py, px);
+  } else if (dir === "move") {
     b.x = clamp(s.x + dx, 0, 1 - s.w);
     b.y = clamp(s.y + dy, 0, 1 - s.h);
     snapped = Math.abs(b.x + b.w / 2 - 0.5) < SNAP;
@@ -315,6 +357,7 @@ const syncColors = [
   colorControl(colorEl("pattern"), () => poster.bg.ink, (v) => { poster.bg.ink = v; }),
   colorControl(colorEl("text"), () => pickedBox().color, (v) => { pickedBox().color = v; }),
   colorControl(colorEl("fill"), () => pickedBox().fill, (v) => { pickedBox().fill = v; }),
+  colorControl(colorEl("line"), () => boxesNow().bubble.line, (v) => { boxesNow().bubble.line = v; }),
 ];
 
 // ---------- panel ----------
@@ -351,6 +394,15 @@ function syncPanel() {
   $("boxPlaystore").checked = b.playstore;
   $("boxBadgeGap").value = b.badgeGap * 100;
   $("boxBadgeGap").disabled = !(b.appstore && b.playstore);
+  const isBubble = picked === "bubble";
+  document.querySelector('label[for="boxSize"]').textContent = isBubble ? "Max size" : "Text size";
+  $("badgeControls").hidden = isBubble;
+  $("bubbleControls").hidden = !isBubble;
+  $("backdropRow").hidden = isBubble;
+  if (!isBubble) $("boxBackdrop").value = b.backdrop;
+  $("bubShape").value = boxesNow().bubble.shape;
+  $("bubLine").value = boxesNow().bubble.lineW * 100;
+  $("rootReset").disabled = boxesNow().bubble.root == null;
   syncColors.forEach((s) => s());
   syncSession();
 }
@@ -364,14 +416,12 @@ function pickBox(name) {
 
 // ---------- sidebar tabs ----------
 
-let sideTab = "text";
+let sideTab = "items";
 
 function showSide(name) {
   sideTab = name;
   for (const btn of document.querySelectorAll("[data-side]")) btn.setAttribute("aria-pressed", btn.dataset.side === name);
   for (const panel of document.querySelectorAll("[data-panel]")) panel.hidden = panel.dataset.panel !== name;
-  // Header/Footer picker and contrast only matter while editing a box.
-  $("sideBox").hidden = name !== "text" && name !== "style";
 }
 for (const btn of document.querySelectorAll("[data-side]")) btn.addEventListener("click", () => showSide(btn.dataset.side));
 
@@ -394,6 +444,14 @@ const inputs = {
   boxAppstore: (v, el) => { pickedBox().appstore = el.checked; },
   boxPlaystore: (v, el) => { pickedBox().playstore = el.checked; },
   boxBadgeGap: (v) => { pickedBox().badgeGap = v / 100; },
+  boxBackdrop: (v) => { pickedBox().backdrop = v; },
+  bubShape: (v) => {
+    const b = boxesNow().bubble;
+    b.shape = v;
+    // Comic bubbles are drawn with an outline; Stubby's own has none, only a shadow.
+    b.lineW = v === "stubby" ? 0 : b.lineW || 0.004;
+  },
+  bubLine: (v) => { boxesNow().bubble.lineW = v / 100; },
 };
 for (const [id, write] of Object.entries(inputs)) {
   $(id).addEventListener("input", (e) => {
@@ -407,9 +465,40 @@ for (const btn of document.querySelectorAll("[data-pick]")) btn.addEventListener
 for (const btn of document.querySelectorAll("[data-align]")) {
   btn.addEventListener("click", () => { pickedBox().align = btn.dataset.align; syncPanel(); renderPoster(); });
 }
+$("rootReset").addEventListener("click", () => {
+  boxesNow().bubble.root = null;
+  syncPanel();
+  renderPoster();
+});
 $("boxBold").addEventListener("click", () => {
   const b = pickedBox();
   b.weight = b.weight >= 700 ? 400 : 700;
   syncPanel();
   renderPoster();
 });
+
+// B and I wrap the selected words in markup, or unwrap them when they are already wrapped.
+for (const [id, sym] of [["mkBold", "**"], ["mkItalic", "_"]]) {
+  $(id).addEventListener("click", () => {
+    const ta = $("boxText");
+    let { selectionStart: a, selectionEnd: z, value: v } = ta;
+    if (a === z) return;
+    const n = sym.length;
+    if (v.slice(a - n, a) === sym && v.slice(z, z + n) === sym) {
+      v = v.slice(0, a - n) + v.slice(a, z) + v.slice(z + n);
+      a -= n;
+      z -= n;
+    } else if (z - a >= 2 * n && v.slice(a, a + n) === sym && v.slice(z - n, z) === sym) {
+      v = v.slice(0, a) + v.slice(a + n, z - n) + v.slice(z);
+      z -= 2 * n;
+    } else {
+      v = v.slice(0, a) + sym + v.slice(a, z) + sym + v.slice(z);
+      a += n;
+      z += n;
+    }
+    ta.value = v;
+    ta.focus();
+    ta.setSelectionRange(a, z);
+    ta.dispatchEvent(new Event("input"));
+  });
+}

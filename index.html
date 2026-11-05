@@ -85,12 +85,23 @@
     <input type="file" id="pFile" accept="image/*" multiple hidden>
 
     <div id="pEditor" class="studio" hidden>
+      <!-- The language you look at is a property of the poster, so its switch sits above it. -->
+      <div class="langbar">
+        <div id="langTabs" class="seg wrap" role="group" aria-label="Language shown"></div>
+        <select id="langAdd" aria-label="Add another language"></select>
+        <button id="langRemove" class="link" hidden></button>
+        <span class="hint" id="langStatus" role="status"></span>
+      </div>
       <div class="canvas-area" id="canvasArea">
         <div id="stage" class="stage">
           <canvas id="pCanvas"></canvas>
           <div id="guide" class="guide" hidden></div>
+          <!-- Bubble first, so the header and footer stay on top of it for clicks too. -->
+          <div class="box" data-box="bubble" aria-label="Speech bubble"></div>
           <div class="box" data-box="header" aria-label="Header box"></div>
           <div class="box" data-box="footer" aria-label="Footer box"></div>
+          <span id="rootDot" class="handle tail-dot root-dot" data-box="bubble" data-dir="root" title="Drag to move where the tail starts" hidden></span>
+          <span id="tailDot" class="handle tail-dot" data-box="bubble" data-dir="tail" title="Drag to aim the tail" hidden></span>
         </div>
       </div>
 
@@ -106,62 +117,93 @@
 
       <aside class="sidebar" aria-label="Settings">
         <nav class="side-tabs">
-          <button data-side="text" aria-pressed="true">Text</button>
-          <button data-side="style" aria-pressed="false">Style</button>
-          <button data-side="bg" aria-pressed="false">Background</button>
-          <button data-side="export" aria-pressed="false">Export</button>
+          <button data-side="items" aria-pressed="true">Items</button>
+          <button data-side="page" aria-pressed="false">Page</button>
+          <button data-side="video" aria-pressed="false">Video</button>
         </nav>
 
-        <!-- Shared by the Text and Style tabs: which box you edit, and how readable it is. -->
-        <div class="side-box" id="sideBox">
-          <div class="seg" role="group" aria-label="Which box">
-            <button data-pick="header" aria-pressed="true">Header</button>
-            <button data-pick="footer" aria-pressed="false">Footer</button>
+        <!-- The three things on the poster stay in view; one set of settings below edits whichever is picked. -->
+        <div class="side-panel" data-panel="items">
+          <div class="items">
+            <button class="item" data-pick="header" aria-pressed="true"><span>Header</span><span class="item-meta" data-meta="header"></span></button>
+            <button class="item" data-pick="bubble" aria-pressed="false"><span>Bubble</span><span class="item-meta" data-meta="bubble"></span></button>
+            <button class="item" data-pick="footer" aria-pressed="false"><span>Footer</span><span class="item-meta" data-meta="footer"></span></button>
           </div>
-          <p id="contrast" class="contrast" aria-label="Text contrast"></p>
-        </div>
-
-        <div class="side-panel" data-panel="text">
-          <label class="check"><input type="checkbox" id="boxShow"> Show this box</label>
-          <textarea id="boxText" rows="4" aria-label="Box text"></textarea>
-          <div class="group">
-            <h3>Language</h3>
-            <div id="langTabs" class="seg wrap" role="group" aria-label="Language shown"></div>
-            <div class="inline">
-              <select id="langAdd" aria-label="Add another language"></select>
-              <button id="langRemove" class="link" hidden>Remove this language</button>
+          <div id="itemBody" class="item-body">
+          <label class="check"><input type="checkbox" id="boxShow"> Show on the poster</label>
+          <div class="field">
+            <div class="field-head">
+              <label for="boxText">Words</label>
+              <span class="tools">
+                <button id="mkBold" class="toggle" title="Bold the selected words" aria-label="Bold the selected words"><b>B</b></button>
+                <button id="mkItalic" class="toggle" title="Italic the selected words" aria-label="Italic the selected words"><i>I</i></button>
+              </span>
             </div>
-            <p class="hint" id="langStatus" role="status"></p>
+            <textarea id="boxText" rows="3"></textarea>
+            <p class="hint">Select words, then press B or I.</p>
           </div>
-        </div>
 
-        <div class="side-panel" data-panel="style" hidden>
-          <div class="row">
-            <label for="boxFont">Font</label>
-            <select id="boxFont">
-              <option>Fredoka</option>
-              <option>Nunito</option>
-            </select>
-            <button id="boxBold" class="toggle" aria-pressed="false" aria-label="Bold"><b>B</b></button>
-          </div>
-          <div class="row">
-            <label for="boxWeight">Weight</label>
-            <input type="range" id="boxWeight" step="10">
-            <output id="boxWeightOut"></output>
-          </div>
-          <div class="row">
-            <label for="boxSize">Text size</label>
-            <input type="range" id="boxSize" min="1" max="20" step="0.1">
-            <output id="boxSizeOut"></output>px
-          </div>
-          <div class="seg" role="group" aria-label="Align">
-            <button data-align="left" aria-pressed="false">Left</button>
-            <button data-align="center" aria-pressed="true">Center</button>
-            <button data-align="right" aria-pressed="false">Right</button>
-          </div>
-          <div class="color" data-color="text" data-label="Text color"></div>
-          <div class="color" data-color="fill" data-label="Box color" data-none></div>
           <div class="group">
+            <h3>Look</h3>
+            <div class="row">
+              <label for="boxFont">Font</label>
+              <select id="boxFont">
+                <option>Fredoka</option>
+                <option>Nunito</option>
+              </select>
+              <button id="boxBold" class="toggle wide" aria-pressed="false" title="Make all the text bold">All bold</button>
+            </div>
+            <div class="row">
+              <label for="boxWeight">Weight</label>
+              <input type="range" id="boxWeight" step="10">
+              <output id="boxWeightOut"></output>
+            </div>
+            <div class="row">
+              <label for="boxSize">Text size</label>
+              <input type="range" id="boxSize" min="1" max="20" step="0.1">
+              <output id="boxSizeOut"></output>px
+            </div>
+            <div class="seg" role="group" aria-label="Align">
+              <button data-align="left" aria-pressed="false">Left</button>
+              <button data-align="center" aria-pressed="true">Center</button>
+              <button data-align="right" aria-pressed="false">Right</button>
+            </div>
+            <div class="color" data-color="text" data-label="Text color"></div>
+            <div class="color" data-color="fill" data-label="Fill color" data-none></div>
+            <div class="row" id="backdropRow">
+              <label for="boxBackdrop">Backdrop</label>
+              <select id="boxBackdrop">
+                <option value="none">None</option>
+                <option value="frosted">Frosted card</option>
+                <option value="fade">Fade from edge</option>
+                <option value="glow">Text glow</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="bubbleControls" class="group">
+            <h3>Bubble</h3>
+            <div class="row">
+              <label for="bubShape">Shape</label>
+              <select id="bubShape">
+                <option value="stubby">Stubby (soft shadow)</option>
+                <option value="oval">Comic oval</option>
+                <option value="cloud">Thought cloud</option>
+                <option value="shout">Shout (spiky)</option>
+                <option value="whisper">Whisper (dashed)</option>
+              </select>
+            </div>
+            <div class="color" data-color="line" data-label="Line color"></div>
+            <div class="row">
+              <label for="bubLine">Line width</label>
+              <input type="range" id="bubLine" min="0" max="1.5" step="0.1">
+              <output id="bubLineOut"></output>px
+            </div>
+            <p class="hint">Drag the green dot to aim the tail. Drag the yellow dot to move where it starts.</p>
+            <button id="rootReset" class="secondary">Reset tail start</button>
+          </div>
+
+          <div id="badgeControls" class="group">
             <h3>Store badges</h3>
             <label class="check"><input type="checkbox" id="boxAppstore"> App Store</label>
             <label class="check"><input type="checkbox" id="boxPlaystore"> Google Play</label>
@@ -171,55 +213,60 @@
               <output id="boxBadgeGapOut"></output>px
             </div>
           </div>
-          <button id="applyAll" class="secondary">Apply this box to all slides</button>
+
+            <button id="applyAll" class="secondary">Apply this item to all slides</button>
+          </div>
         </div>
 
-        <div class="side-panel" data-panel="bg" hidden>
-          <select id="bgType" aria-label="Background type">
-            <option value="paw">Paw pattern</option>
-            <option value="dots">Dots</option>
-            <option value="stripes">Stripes</option>
-            <option value="plain">Plain color</option>
-          </select>
-          <p class="hint">Shows only through transparent parts of your image.</p>
-          <div class="color" data-color="bg" data-label="Background"></div>
-          <div id="patternControls" class="group">
-            <div class="color" data-color="pattern" data-label="Pattern color"></div>
-            <div class="row">
-              <label for="patStrength">Strength</label>
-              <input type="range" id="patStrength" min="0" max="40" step="0.5">
-              <output id="patStrengthOut"></output>%
-            </div>
-            <div class="row">
-              <label for="patSize">Size</label>
-              <input type="range" id="patSize" min="5" max="60">
-              <output id="patSizeOut"></output>%
+        <div class="side-panel" data-panel="page" hidden>
+          <div class="group">
+            <h3>Size</h3>
+            <select id="pRatio" aria-label="Aspect ratio"></select>
+            <label class="check"><input type="checkbox" id="pExact"> Exact preset size (scales the image)</label>
+            <p class="hint" id="pAuto"></p>
+            <p class="hint" id="pInfo"></p>
+          </div>
+          <div class="group">
+            <h3>Background</h3>
+            <select id="bgType" aria-label="Background type">
+              <option value="paw">Paw pattern</option>
+              <option value="dots">Dots</option>
+              <option value="stripes">Stripes</option>
+              <option value="plain">Plain color</option>
+            </select>
+            <p class="hint">Shows only through transparent parts of your image.</p>
+            <div class="color" data-color="bg" data-label="Color"></div>
+            <div id="patternControls" class="stack">
+              <div class="color" data-color="pattern" data-label="Pattern"></div>
+              <div class="row">
+                <label for="patStrength">Strength</label>
+                <input type="range" id="patStrength" min="0" max="40" step="0.5">
+                <output id="patStrengthOut"></output>%
+              </div>
+              <div class="row">
+                <label for="patSize">Size</label>
+                <input type="range" id="patSize" min="5" max="60">
+                <output id="patSizeOut"></output>%
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="side-panel" data-panel="export" hidden>
-          <h3>Size</h3>
-          <select id="pRatio" aria-label="Aspect ratio"></select>
-          <label class="check"><input type="checkbox" id="pExact"> Exact preset size (scales the image)</label>
-          <p class="hint" id="pAuto"></p>
-          <p class="hint" id="pInfo"></p>
-          <div class="group">
-            <h3>This slide as video</h3>
-            <label class="check"><input type="checkbox" id="vidOn"> Export this slide as MP4</label>
-            <div id="vidControls" class="stack">
-              <div class="row">
-                <label for="vidSecs">Length</label>
-                <input type="range" id="vidSecs" min="1" max="15" step="0.5">
-                <output id="vidSecsOut"></output>s
-              </div>
-              <div class="row">
-                <label for="vidZoom">Slow zoom</label>
-                <input type="range" id="vidZoom" min="0" max="10" step="0.5">
-                <output id="vidZoomOut"></output>%
-              </div>
-              <p class="hint">Up to 1080 × 1920, 30 fps, no sound. In the ZIP this slide comes as MP4 instead of PNG.</p>
+        <div class="side-panel" data-panel="video" hidden>
+          <p class="hint">Slides export as PNG. Turn this on to export the slide you are looking at as an MP4 instead. The other slides stay PNG.</p>
+          <label class="check"><input type="checkbox" id="vidOn"> Export this slide as MP4</label>
+          <div id="vidControls" class="stack">
+            <div class="row">
+              <label for="vidSecs">Length</label>
+              <input type="range" id="vidSecs" min="1" max="15" step="0.5">
+              <output id="vidSecsOut"></output>s
             </div>
+            <div class="row">
+              <label for="vidZoom">Slow zoom</label>
+              <input type="range" id="vidZoom" min="0" max="10" step="0.5">
+              <output id="vidZoomOut"></output>%
+            </div>
+            <p class="hint">Up to 1080 × 1920, 30 fps, no sound. In the ZIP this slide comes as MP4 instead of PNG.</p>
           </div>
         </div>
 
